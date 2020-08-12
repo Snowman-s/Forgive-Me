@@ -18,7 +18,7 @@
 
 ### 記録を残す
 - Say [words...]. - Sayの後に続く、ピリオドまでの文を全て表示し、改行する。
-- Forgive [world name]. - [world name]に住むヒトを全て赦し、赦した人数を次の形式で表示し改行する：「(人数)人は赦されました。」
+- Forgive [world name]. - [world name]に住むヒトを全て赦し、赦した人数を次の形式で表示し改行する：「(人数)人は赦されました。」。なお、これによって世界の人数が変更されることは無い。
 
 ### 人数操作
 - Live [world name] [number]. - [world name]の人数を[number(数値)]の人数にする。
@@ -34,5 +34,8 @@
 ### しおり
 - Bookmark [bookmark name] - この文の位置に[bookmark name]の名前の栞をはさみ、後に特定の文で参照できる。
 
-- Read [bookmark name] - [bookmark name]の栞が挟まれた位置に移動してまた読み始める。
-- Read-Positive [bookmark name] [number] - [number]が1以上の場合、[bookmark name]の栞が挟まれた位置に移動してまた読み始める。
+- Open [bookmark name] - [bookmark name]の栞が挟まれた位置に移動してまた読み始める。
+- Open-Positive [bookmark name] [number] - [number]が1以上の場合、[bookmark name]の栞が挟まれた位置に移動してまた読み始める。
+
+### コメント
+- Reminder [comments...] - コメントを書くために特別に予約された識別子。この文は無視される。前述のとおり定義されない識別子は無視されるのでそれをコメントとして用いることもできる。
