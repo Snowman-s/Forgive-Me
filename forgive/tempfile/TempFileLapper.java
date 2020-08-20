@@ -3,9 +3,6 @@ package forgive.tempfile;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
@@ -26,7 +23,7 @@ public class TempFileLapper {
         }
     }
 
-    public BufferedWriter getWriter(TempFiles file) throws IOException{
+    public BufferedWriter getWriter(TempFiles file){
         try{
             return Files.newBufferedWriter(files.get(file));
         }catch(Exception e){

@@ -49,16 +49,18 @@ public class Forgive {
             while((readChar = reader.read())!=-1){
                 if(characterManager.isSeparateChar(readChar)){
                     writer.write('\n');
+                } else if(characterManager.isSpace(readChar)){
+                    writer.write(' ');
                 } else {
                     writer.write(readChar);
                 }
             }
-        }catch(IOException e){
-
+        } catch(IOException e) {
+            throw new RuntimeException("ソース・ファイルが読み取れません。");
         }
         
         try(BufferedReader reader = tempFileLapper.getReader(TempFiles.SRC_FILE_SEPARATE)){
-            reader.lines().forEach(System.out::println);;
+            reader.lines().forEach(System.out::println);
         }catch(IOException e){
 
         }
