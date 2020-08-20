@@ -10,13 +10,10 @@ import forgive.tempfile.TempFileLapper.TempFiles;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class Forgive {
     static String fileName;
@@ -41,7 +38,17 @@ public class Forgive {
         tempFileLapper.createAllTempFile();
 
         characterManager = new DefaultCharacterManager();
+        
+        separateSrcFile();
 
+        try(BufferedReader reader = tempFileLapper.getReader(TempFiles.SRC_FILE_SEPARATE)){
+            reader.lines().forEach(System.out::println);
+        }catch(IOException e){
+
+        }
+    }
+
+    private static void separateSrcFile(){
         try(BufferedWriter writer = tempFileLapper.getWriter(TempFiles.SRC_FILE_SEPARATE);
             BufferedReader reader = Files.newBufferedReader(Path.of(fileName))){
             
@@ -57,12 +64,6 @@ public class Forgive {
             }
         } catch(IOException e) {
             throw new RuntimeException("ソース・ファイルが読み取れません。");
-        }
-        
-        try(BufferedReader reader = tempFileLapper.getReader(TempFiles.SRC_FILE_SEPARATE)){
-            reader.lines().forEach(System.out::println);
-        }catch(IOException e){
-
         }
     }
 }
