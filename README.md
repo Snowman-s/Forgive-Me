@@ -9,7 +9,7 @@
 - 識別子は全て半角英数字で記述する必要があります。
 ### 手順
 1. `create.bat` を同じ作業ディレクトリで実行。
-2. `forgive/` を環境変数PATHに追加。
+2. `Forgive-Me/` を環境変数PATHに追加。
 3. `forgive -h` を実行。
 ### testworld
 - testworld 内はgitに無視されるので自由に使えます。
