@@ -10,15 +10,17 @@ import forgive.tempfile.TempFileLapper.TempFiles;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 public class Forgive {
-    static String fileName;
-    static TempFileLapper tempFileLapper;
-    static CharacterManager characterManager;
+    private static String fileName;
+    private static TempFileLapper tempFileLapper;
+    private static CharacterManager characterManager;
 
     public static void main(String[] args) {
         Map<ArgumentType, List<String>> options = ArgumentReader.read(args);
@@ -35,17 +37,13 @@ public class Forgive {
         fileName = options.get(ArgumentType.FileName).get(0);
 
         tempFileLapper = new TempFileLapper();
-        tempFileLapper.createAllTempFile();
+        tempFileLapper.createAllTempFile(false);
 
         characterManager = new DefaultCharacterManager();
         
         separateSrcFile();
 
-        try(BufferedReader reader = tempFileLapper.getReader(TempFiles.SRC_FILE_SEPARATE)){
-            reader.lines().forEach(System.out::println);
-        }catch(IOException e){
-
-        }
+        createOutputFile();
     }
 
     private static void separateSrcFile(){
@@ -64,6 +62,19 @@ public class Forgive {
             }
         } catch(IOException e) {
             throw new RuntimeException("ソース・ファイルが読み取れません。");
+        }
+    }
+
+    private static void createOutputFile(){
+        try(OutputStream output = tempFileLapper.getOutputStream(TempFiles.OUTPUT_CLASSFILE)){
+            //magic number
+            output.write(new byte[]{(byte)0xCA, (byte)0xFE, (byte)0xBA, (byte)0xBE});
+            //minor version
+            output.write(new byte[]{0, 0});
+            //major version
+            output.write(new byte[]{0, 55});
+        } catch(IOException ignored){
+            //あり得ない
         }
     }
 }
