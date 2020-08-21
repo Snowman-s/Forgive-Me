@@ -8,8 +8,12 @@ import java.util.List;
 import forgive.classfile.ClassFileInfo.RuntimeConstantField;
 import forgive.classfile.ClassFileInfo.RuntimeConstantType;
 
-public class ClassFileByteWriter {
-    private ClassFileInfo classFileInfo = new ClassFileInfo();
+public class RuntimeConstantWriter {
+    private final ClassFileInfo classFileInfo;
+
+    public RuntimeConstantWriter(ClassFileInfo classFileInfo){
+        this.classFileInfo = classFileInfo;
+    }
 
     public int writeRuntimeUTF8(OutputStream outputStream, String string) throws IOException{
         List<ClassFileInfo.RuntimeConstantField> runtimeFields = classFileInfo.runtimeFields();
@@ -76,7 +80,7 @@ public class ClassFileByteWriter {
             if(runtimeField.getIdentifier() == RuntimeConstantType.Class &&
                 runtimeField.getValue()[0] == utf8Index >>> 8 &&
                 runtimeField.getValue()[1] == (utf8Index & 0xFF)){
-                return i;
+                return i + 1;
             }
         }
         
@@ -102,7 +106,7 @@ public class ClassFileByteWriter {
             if(runtimeField.getIdentifier() == RuntimeConstantType.String &&
                 runtimeField.getValue()[0] == utf8Index >>> 8 &&
                 runtimeField.getValue()[1] == (utf8Index & 0xFF)){
-                return i;
+                return i + 1;
             }
         }
         
@@ -131,11 +135,11 @@ public class ClassFileByteWriter {
                 runtimeField.getValue()[1] == (classIndex & 0xFF) &&
                 runtimeField.getValue()[2] == nameAndTypeIndex >>> 8 &&
                 runtimeField.getValue()[3] == (nameAndTypeIndex & 0xFF)){
-                return i;
+                return i + 1;
             }
         }
         
-        byte[] data = new byte[3];
+        byte[] data = new byte[5];
         data[0] = ClassFileInfo.RuntimeConstantType.Methodref.getIdentifier();
         data[1] = (byte)(classIndex >>> 8);
         data[2] = (byte)(classIndex & 0xFF);
@@ -162,12 +166,12 @@ public class ClassFileByteWriter {
                 runtimeField.getValue()[1] == (nameIndex & 0xFF) &&
                 runtimeField.getValue()[2] == descriptorIndex >>> 8 &&
                 runtimeField.getValue()[3] == (descriptorIndex & 0xFF)){
-                return i;
+                return i + 1;
             }
         }
         
-        byte[] data = new byte[3];
-        data[0] = ClassFileInfo.RuntimeConstantType.String.getIdentifier();
+        byte[] data = new byte[5];
+        data[0] = ClassFileInfo.RuntimeConstantType.NameAndType.getIdentifier();
         data[1] = (byte)(nameIndex >>> 8);
         data[2] = (byte)(nameIndex & 0xFF);
         data[3] = (byte)(descriptorIndex >>> 8);
@@ -177,5 +181,13 @@ public class ClassFileByteWriter {
         classFileInfo.addRuntimeField(data);
 
         return classFileInfo.runtimeFields().size();
+    }
+
+    public void writeRuntimeUserMethod(OutputStream outputStream, MethodInfo method) throws IOException{
+        int nameIndex = writeRuntimeUTF8(outputStream, method.getMethodName());
+        int descriptorIndex = writeRuntimeUTF8(outputStream, method.getMethodDescriptor());
+
+        method.setMethodNameIndex(nameIndex);
+        method.setMethodDescriptorIndex(descriptorIndex);
     }
 }

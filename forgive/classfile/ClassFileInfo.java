@@ -7,12 +7,17 @@ import java.util.Optional;
 
 public class ClassFileInfo {
     private List<RuntimeConstantField> runtimeFields = new ArrayList<>(); 
+    private List<MethodInfo> methods = new ArrayList<>(); 
 
     public List<RuntimeConstantField> runtimeFields() {
         return List.copyOf(runtimeFields);
     }
 
-    public void addRuntimeField(byte[] data) {
+    public List<MethodInfo> methods() {
+        return List.copyOf(methods);
+    }
+
+    void addRuntimeField(byte[] data) {
         RuntimeConstantField rField = new RuntimeConstantField();
         rField.identifier = data[0];
 
@@ -21,6 +26,10 @@ public class ClassFileInfo {
         rField.value = value;
 
         runtimeFields.add(rField);
+    }
+
+    public void addMethods(MethodInfo method) {
+        methods.add(method);
     }
 
     public static class RuntimeConstantField {
