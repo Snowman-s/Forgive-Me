@@ -80,7 +80,8 @@ public class TempFileLapper {
     }
 
     public enum TempFiles{
-        SRC_FILE_SEPARATE("src_s"), OUTPUT_CLASSFILE("out")
+        SRC_FILE_SEPARATE("src_s"), OUTPUT_CLASSFILE("out"),
+        RUNTIME_CONSTANT_MEMO("run"), OPCODE_MEMO("ope")
         ;
         private final String fileName;
         TempFiles(String fileName){
