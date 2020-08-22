@@ -1,7 +1,9 @@
 package forgive.classfile;
 
 import java.util.Set;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 
 import forgive.constants.AccessFlags;
 
@@ -13,7 +15,7 @@ public class MethodInfo {
     private String methodDescriptor;
     private int opecodeBytes = 0;
     private int stackSize = 1;
-    private int locals = 0;
+    private List<LocalVariableInfo> locals = new ArrayList<>();
 
     public MethodInfo(Set<AccessFlags> accessFlagSet, String methodName, String methodDescriptor){
         this.methodName = methodName;
@@ -39,7 +41,7 @@ public class MethodInfo {
 
     /**
      * このメソッドの識別子を得ます
-     * {@link RuntimeConstantWriter#writeRuntimeUserMethod(java.io.OutputStream, MethodInfo)}を呼んでからでなければ正しく動作しません動作
+     * {@link RuntimeConstantWriter#writeRuntimeUserMethod(java.io.OutputStream, MethodInfo)}を呼んでからでなければ正しく動作しません
      * @return
      */
     public int getIdentity() {
@@ -76,15 +78,50 @@ public class MethodInfo {
         return stackSize;
     }
 
-    public void setLocals(int locals) {
-        this.locals = locals;
+    public void addLocals(LocalVariableInfo info) {
+        this.locals.add(info);
     }
 
-    public int getLocals() {
-        return locals;
+    public List<LocalVariableInfo> locals() {
+        return List.copyOf(locals);
     }
 
-    public void addLocals(int add) {
-        this.locals += locals;
+    public int getIntLocalVariableIndex(String name){
+        for (int i = 0; i < locals.size(); i++) {
+            if(locals.get(i).name.equals(name)){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static class LocalVariableInfo {
+        private String name;
+        private byte[] verificationType;
+
+        public String name() {
+            return name;
+        }
+
+        private boolean isIntVariable(){
+            return verificationType[0] == 1;
+        }
+
+        public static LocalVariableInfo objectVariableOf(String name, short classIndex){
+            LocalVariableInfo info = new LocalVariableInfo();
+            info.name = name;
+            info.verificationType = new byte[]{7, (byte)(classIndex >> 8), (byte)(classIndex & 0xFF)};
+
+            return info;
+        }
+
+        public static LocalVariableInfo intVariableOf(String name){
+            LocalVariableInfo info = new LocalVariableInfo();
+            info.name = name;
+            info.verificationType = new byte[]{1};
+
+            return info;
+        }
     }
 }

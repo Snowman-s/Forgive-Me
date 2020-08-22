@@ -31,7 +31,7 @@
 
 ### 記録を残す
 - Say [words...]. - Sayの後に続く、ピリオドまでの文を全て表示し、改行する。
-- Forgive [world name]. - [world name]に住むヒトを全て赦し、赦した人数を次の形式で表示し改行する：「(人数)人は赦されました。」。なお、これによって世界の人数が変更されることは無い。
+- Forgive [world name]. - [world name]に住むヒトを全て赦し、赦した人数を次の形式で表示し改行する：「(人数) people were forgiven.」。なお、これによって世界の人数が変更されることは無い。
 
 ### 人数操作
 - Live [world name] [number]. - [world name]の人数を[number(数値)]の人数にする。

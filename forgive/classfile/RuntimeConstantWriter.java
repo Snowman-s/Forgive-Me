@@ -2,6 +2,7 @@ package forgive.classfile;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,14 +18,14 @@ public class RuntimeConstantWriter {
 
     public int writeRuntimeUTF8(OutputStream outputStream, String string) throws IOException{
         List<ClassFileInfo.RuntimeConstantField> runtimeFields = classFileInfo.runtimeFields();
-        byte[] stringByte = string.getBytes();
+        byte[] stringByte = string.getBytes(Charset.forName("UTF-8"));
 
         //既にあるか検査
         for (int i = 0; i < runtimeFields.size(); i++) {
             RuntimeConstantField runtimeField = runtimeFields.get(i);
             if(runtimeField.getIdentifier() == RuntimeConstantType.Utf8 && 
-                Arrays.equals(runtimeField.getValue(), 2, runtimeField.getValue().length - 1,
-                                stringByte, 0, stringByte.length - 1)){
+                Arrays.equals(runtimeField.getValue(), 2, runtimeField.getValue().length,
+                                stringByte, 0, stringByte.length)){
                 return i + 1;
             }
         }

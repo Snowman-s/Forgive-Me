@@ -26,7 +26,7 @@ public class MethodWriter {
         //stack
         methodOutputStream.write(Integers.asByteArray(methodInfo.getStackSize(), 2));
         //locals
-        methodOutputStream.write(Integers.asByteArray(methodInfo.getLocals(), 2));
+        methodOutputStream.write(Integers.asByteArray(methodInfo.locals().size(), 2));
         methodOutputStream.write(Integers.asByteArray(methodInfo.getOpecodeBytes(), 4));
         opecodeInputStream.transferTo(methodOutputStream);
         methodOutputStream.write(Integers.asByteArray(0, 2));

@@ -3,6 +3,7 @@ package forgive;
 import forgive.arguments.ArgumentReader;
 import forgive.arguments.ArgumentReader.ArgumentType;
 import forgive.classfile.RuntimeConstantWriter;
+import forgive.classfile.MethodInfo.LocalVariableInfo;
 import forgive.classfile.ClassFileInfo;
 import forgive.classfile.MethodInfo;
 import forgive.classfile.MethodWriter;
@@ -101,13 +102,21 @@ public class Forgive {
             BufferedReader reader = Files.newBufferedReader(Path.of(fileName))){
 
             int readChar;
+            boolean disableSpace = true;
             while((readChar = reader.read()) != -1){
                 if(characterManager.isSeparateChar(readChar)){
-                    writer.write('\n');
+                    if(!disableSpace){
+                        writer.write('\n');
+                    }
+                    disableSpace = true;
                 } else if(characterManager.isSpace(readChar)){
-                    writer.write(' ');
+                    if(!disableSpace){
+                        writer.write(' ');
+                    }
+                    disableSpace = true;
                 } else {
                     writer.write(readChar);
+                    disableSpace = false;
                 }
             }
         } catch(IOException e) {
@@ -145,7 +154,7 @@ public class Forgive {
         MethodWriter methodWriter = new MethodWriter(methodInfo);
 
         //"this"
-        methodInfo.setLocals(1);
+        methodInfo.addLocals(LocalVariableInfo.objectVariableOf("", (short)runtimeClassIndex));
         try (OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))) {
             runtimeConstantWriter.writeRuntimeUserMethod(runtimeOutputStream, methodInfo);
         }
@@ -171,10 +180,11 @@ public class Forgive {
         SrcTranslater srcTranslater = new SrcTranslater(methodInfo);
         MethodWriter methodWriter = new MethodWriter(methodInfo);
 
-        //[Ljava/lang/String;
-        methodInfo.setLocals(1);
         try (OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))) {
             runtimeConstantWriter.writeRuntimeUserMethod(runtimeOutputStream, methodInfo);
+            int stringArrayIndex = runtimeConstantWriter.writeRuntimeClass(runtimeOutputStream, "[Ljava/lang/String;");
+            //[Ljava/lang/String;
+            methodInfo.addLocals(LocalVariableInfo.objectVariableOf("", (short)stringArrayIndex));
         }
 
         tempFileLapper.createTempFiles(Set.of(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()), TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity())));
