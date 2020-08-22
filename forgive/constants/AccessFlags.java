@@ -18,10 +18,7 @@ public enum AccessFlags{
         this.data = data;
     }
     
-    public byte[] getData() {
-        byte[] num = new byte[2];
-        num[0] = (byte)(this.data >>> 8);
-        num[1] = (byte)(this.data & 0xFF);
-        return num;
+    public int getData() {
+        return this.data;
     }
 }

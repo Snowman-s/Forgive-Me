@@ -1,15 +1,24 @@
 package forgive.classfile;
 
+import java.util.Set;
+import java.util.EnumSet;
+
+import forgive.constants.AccessFlags;
+
 public class MethodInfo {
     private int methodNameIndex = -1;
     private int methodDescriptorIndex = -1;
+    private Set<AccessFlags> accessFlags;
     private String methodName;
     private String methodDescriptor;
     private int opecodeBytes = 0;
+    private int stackSize = 1;
+    private int locals = 0;
 
-    public MethodInfo(String methodName, String methodDescriptor){
+    public MethodInfo(Set<AccessFlags> accessFlagSet, String methodName, String methodDescriptor){
         this.methodName = methodName;
         this.methodDescriptor = methodDescriptor;
+        this.accessFlags = accessFlagSet;
     }
 
     public String getMethodName() {
@@ -51,5 +60,31 @@ public class MethodInfo {
 
     public int getOpecodeBytes() {
         return opecodeBytes;
+    }
+
+    public Set<AccessFlags> getAccessFlags() {
+        return EnumSet.copyOf(accessFlags);
+    }
+
+    public void setStackSizeIfBigger(int stackSize) {
+        if(stackSize > this.stackSize){
+            this.stackSize = stackSize;
+        }
+    }
+
+    public int getStackSize() {
+        return stackSize;
+    }
+
+    public void setLocals(int locals) {
+        this.locals = locals;
+    }
+
+    public int getLocals() {
+        return locals;
+    }
+
+    public void addLocals(int add) {
+        this.locals += locals;
     }
 }

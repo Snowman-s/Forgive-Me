@@ -706,5 +706,10 @@ public class OpecodeWriter {
 
     class UnimplementOpecodeException extends RuntimeException{
 
+        /**
+		 *
+		 */
+		private static final long serialVersionUID = -3719349081848601461L;
+
     }
 }

@@ -5,6 +5,7 @@ import forgive.arguments.ArgumentReader.ArgumentType;
 import forgive.classfile.RuntimeConstantWriter;
 import forgive.classfile.ClassFileInfo;
 import forgive.classfile.MethodInfo;
+import forgive.classfile.MethodWriter;
 import forgive.classfile.OpecodeWriter;
 import forgive.constants.AccessFlags;
 import forgive.constants.CharacterManager;
@@ -21,7 +22,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -40,8 +40,6 @@ public class Forgive {
     private static int runtimeMethodObjetInitIndex;
     private static int runtimeClassIndex;
     private static int runtimeUtf8CodeIndex;
-    private static int runtimeUtf8MainNameIndex;
-    private static int runtimeUtf8MainDescriptorIndex;
 
     private static final String SRC_FILE_EXT = ".forgive";
 
@@ -86,6 +84,8 @@ public class Forgive {
             setupRuntimeField();
 
             setupMethodInit();
+
+            readStatement();
 
             completeClassFile();
 
@@ -135,17 +135,16 @@ public class Forgive {
             runtimeClassIndex = runtimeConstantWriter.writeRuntimeClass(outputStream, absFileName);
             //utf8 "Code"
             runtimeUtf8CodeIndex = runtimeConstantWriter.writeRuntimeUTF8(outputStream, "Code");
-            //utf8 "main"
-            runtimeUtf8MainNameIndex = runtimeConstantWriter.writeRuntimeUTF8(outputStream, "main");
-            //utf8 "([Ljava/lang/String;)V"
-            runtimeUtf8MainDescriptorIndex = runtimeConstantWriter.writeRuntimeUTF8(outputStream, "([Ljava/lang/String;)V");
-        }
+       }
     }
 
     private static void setupMethodInit() throws IOException{
-        MethodInfo methodInfo = new MethodInfo("<init>", "()V");
+        MethodInfo methodInfo = new MethodInfo(EnumSet.of(AccessFlags.PUBLIC), "<init>", "()V");
         OpecodeWriter opecodeWriter = new OpecodeWriter(methodInfo);
+        MethodWriter methodWriter = new MethodWriter(methodInfo);
 
+        //"this"
+        methodInfo.setLocals(1);
         try (OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))) {
             runtimeConstantWriter.writeRuntimeUserMethod(runtimeOutputStream, methodInfo);
         }
@@ -160,29 +159,36 @@ public class Forgive {
         try(OutputStream methodOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()));
             InputStream codeInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
                 
-            methodOutputStream.write(AccessFlags.PUBLIC.getData());
-            methodOutputStream.write(new byte[]{(byte)(methodInfo.getMethodNameIndex() >>> 8), (byte)(methodInfo.getMethodNameIndex() & 0xFF)});
-            methodOutputStream.write(new byte[]{(byte)(methodInfo.getMethodDescriptorIndex() >>> 8), (byte)(methodInfo.getMethodDescriptorIndex() & 0xFF)});
-            methodOutputStream.write(new byte[]{0, 1});
-
-            //Code:
-            methodOutputStream.write(new byte[]{(byte)(runtimeUtf8CodeIndex >> 8), (byte)(runtimeUtf8CodeIndex & 0xFF)});
-            methodOutputStream.write(Integers.asByteArray(methodInfo.getOpecodeBytes() + 12, 4));
-            methodOutputStream.write(Integers.asByteArray(2, 2));
-            methodOutputStream.write(Integers.asByteArray(1, 2));
-            methodOutputStream.write(Integers.asByteArray(methodInfo.getOpecodeBytes(), 4));
-            codeInputStream.transferTo(methodOutputStream);
-            methodOutputStream.write(Integers.asByteArray(0, 2));
-            methodOutputStream.write(Integers.asByteArray(0, 2));
+            methodWriter.writeMethod(runtimeUtf8CodeIndex, codeInputStream, methodOutputStream);
         }
 
         classFileInfo.addMethods(methodInfo);
     }
 
     private static void readStatement() throws IOException{
-        try (BufferedReader reader = tempFileLapper.getReader(TempFileKey.of(TempFiles.SRC_FILE_SEPARATE))) {
-            
+        MethodInfo methodInfo = new MethodInfo(EnumSet.of(AccessFlags.PUBLIC, AccessFlags.STATIC), "main", "([Ljava/lang/String;)V");
+        OpecodeWriter opecodeWriter = new OpecodeWriter(methodInfo);
+        MethodWriter methodWriter = new MethodWriter(methodInfo);
+
+        //[Ljava/lang/String;
+        methodInfo.setLocals(1);
+        try (OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))) {
+            runtimeConstantWriter.writeRuntimeUserMethod(runtimeOutputStream, methodInfo);
         }
+
+        tempFileLapper.createTempFiles(Set.of(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()), TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity())));
+        try (OutputStream codeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
+            //opecodes...
+            opecodeWriter.return_(codeOutputStream);
+        }
+
+        try(OutputStream methodOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()));
+            InputStream codeInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
+            
+            methodWriter.writeMethod(runtimeUtf8CodeIndex, codeInputStream, methodOutputStream);
+        }
+
+        classFileInfo.addMethods(methodInfo);
     }
 
     private static void completeClassFile() throws IOException{
@@ -193,7 +199,7 @@ public class Forgive {
             //constant_pool[constant_pool_count-1];
             runtimeInputStream.transferTo(classOutputStream);
             //access_flags;
-            classOutputStream.write(AccessFlags.PUBLIC.getData());
+            classOutputStream.write(Integers.asByteArray(AccessFlags.PUBLIC.getData(), 2));
             //this_class;
             classOutputStream.write(Integers.asByteArray(runtimeClassIndex, 2));
             //super_class;
