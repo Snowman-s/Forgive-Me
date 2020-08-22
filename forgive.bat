@@ -1,3 +1,3 @@
 @echo off
 
-java forgive.Forgive %1 %2 %3 %4 %5
+java -cp %~d0%~p0 forgive.Forgive %1 %2 %3 %4 %5
