@@ -121,6 +121,37 @@ public class RuntimeConstantWriter {
         return classFileInfo.runtimeFields().size();
     }
 
+    public int writeRuntimeFieldref(OutputStream outputStream, String className, String fieldName, String descriptor) throws IOException{
+        List<ClassFileInfo.RuntimeConstantField> runtimeFields = classFileInfo.runtimeFields();
+
+        int classIndex = writeRuntimeClass(outputStream, className);
+        int nameAndTypeIndex = writeRuntimeNameAndType(outputStream, fieldName, descriptor);
+
+        //既にあるか検査
+        for (int i = 0; i < runtimeFields.size(); i++) {
+            RuntimeConstantField runtimeField = runtimeFields.get(i);
+            if(runtimeField.getIdentifier() == RuntimeConstantType.Fieldref &&
+                runtimeField.getValue()[0] == classIndex >>> 8 &&
+                runtimeField.getValue()[1] == (classIndex & 0xFF) &&
+                runtimeField.getValue()[2] == nameAndTypeIndex >>> 8 &&
+                runtimeField.getValue()[3] == (nameAndTypeIndex & 0xFF)){
+                return i + 1;
+            }
+        }
+        
+        byte[] data = new byte[5];
+        data[0] = ClassFileInfo.RuntimeConstantType.Fieldref.getIdentifier();
+        data[1] = (byte)(classIndex >>> 8);
+        data[2] = (byte)(classIndex & 0xFF);
+        data[3] = (byte)(nameAndTypeIndex >>> 8);
+        data[4] = (byte)(nameAndTypeIndex & 0xFF);
+
+        outputStream.write(data);
+        classFileInfo.addRuntimeField(data);
+
+        return classFileInfo.runtimeFields().size();
+    }
+
     public int writeRuntimeMethodref(OutputStream outputStream, String className, String methodName, String descriptor) throws IOException{
         List<ClassFileInfo.RuntimeConstantField> runtimeFields = classFileInfo.runtimeFields();
 

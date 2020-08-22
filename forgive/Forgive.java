@@ -13,6 +13,7 @@ import forgive.constants.DefaultCharacterManager;
 import forgive.tempfile.TempFileLapper;
 import forgive.tempfile.TempFileLapper.TempFileKey;
 import forgive.tempfile.TempFileLapper.TempFiles;
+import forgive.translate.SrcTranslater;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -167,7 +168,7 @@ public class Forgive {
 
     private static void readStatement() throws IOException{
         MethodInfo methodInfo = new MethodInfo(EnumSet.of(AccessFlags.PUBLIC, AccessFlags.STATIC), "main", "([Ljava/lang/String;)V");
-        OpecodeWriter opecodeWriter = new OpecodeWriter(methodInfo);
+        SrcTranslater srcTranslater = new SrcTranslater(methodInfo);
         MethodWriter methodWriter = new MethodWriter(methodInfo);
 
         //[Ljava/lang/String;
@@ -177,9 +178,12 @@ public class Forgive {
         }
 
         tempFileLapper.createTempFiles(Set.of(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()), TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity())));
-        try (OutputStream codeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
+        try (OutputStream codeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()));
+                BufferedReader srcReader = tempFileLapper.getReader(TempFileKey.of(TempFiles.SRC_FILE_SEPARATE));
+                OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))){
+            srcTranslater.translateAndWrite(srcReader.lines(), runtimeConstantWriter, runtimeOutputStream, codeOutputStream);
             //opecodes...
-            opecodeWriter.return_(codeOutputStream);
+            srcTranslater.return_(codeOutputStream);
         }
 
         try(OutputStream methodOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()));

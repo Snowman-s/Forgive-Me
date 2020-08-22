@@ -10,6 +10,10 @@ public class OpecodeWriter {
         this.methodInfo = methodInfo;
     }
 
+    protected MethodInfo getMethodInfo() {
+        return methodInfo;
+    }
+
     protected void write(OutputStream out, byte[] bytes) throws IOException {
         methodInfo.addOpecodeBytes(bytes.length);
 
@@ -48,7 +52,7 @@ public class OpecodeWriter {
         write(out, new byte[]{0x11, (byte)(s >>> 8), (byte)(s & 0xFF)});
     }
 
-    public void sipush(OutputStream out, byte l) throws IOException {
+    public void ldc(OutputStream out, byte l) throws IOException {
         write(out, new byte[]{0x12, l});
     }
 
