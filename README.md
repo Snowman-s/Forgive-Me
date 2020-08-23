@@ -39,7 +39,7 @@
 - Add [world name] [number]. - [world name]の人数を[number(数値)]だけ増やす。
 - Subtract [world name] [number]. - [world name]の人数を[number(数値)]だけ減らす。
 - Multiply [world name] [number]. - [world name]の人数を[number(数値)]だけ乗ずる。
-- Devide [world name] [number]. - [world name]の人数を[number(数値)]で除する。
+- Divide [world name] [number]. - [world name]の人数を[number(数値)]で除する。
 - Mod [world name] [number]. - [world name]の人数を[number(数値)]で除した余りにする。
 
 - Reverse [world name]. - [world name]の裏をとり、逆符号かつ同じ絶対値の人数にする。つまり-1を掛け合わせる。

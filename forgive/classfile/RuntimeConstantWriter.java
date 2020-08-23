@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
+import forgive.Integers;
 import forgive.classfile.ClassFileInfo.RuntimeConstantField;
 import forgive.classfile.ClassFileInfo.RuntimeConstantType;
 
@@ -44,18 +45,14 @@ public class RuntimeConstantWriter {
 
     public int writeRuntimeInteger(OutputStream outputStream, int integer) throws IOException{
         List<ClassFileInfo.RuntimeConstantField> runtimeFields = classFileInfo.runtimeFields();
-        byte[] dataByte = new byte[Integer.BYTES];
-
-        for (int i = 0; i < Integer.BYTES; i++) {
-            dataByte[Integer.BYTES - i - 1] = (byte)((integer & (0xFF << i * 8)) >>> i * 8);
-        }
+        byte[] dataByte = Integers.asByteArray(integer, 4);
 
         //既にあるか検査
         for (int i = 0; i < runtimeFields.size(); i++) {
             RuntimeConstantField runtimeField = runtimeFields.get(i);
             if(runtimeField.getIdentifier() == RuntimeConstantType.Integer && 
-                Arrays.equals(runtimeField.getValue(), 0, runtimeField.getValue().length - 1,
-                                dataByte, 0, dataByte.length - 1)){
+                Arrays.equals(runtimeField.getValue(), 1, runtimeField.getValue().length,
+                                dataByte, 0, dataByte.length)){
                 return i + 1;
             }
         }

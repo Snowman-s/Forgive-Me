@@ -708,6 +708,10 @@ public class OpecodeWriter {
         }
     }
 
+    public boolean isFitTo_iconst_i(int number){
+        return -1 <= number && number <= 5;
+    }
+
     class UnimplementOpecodeException extends RuntimeException{
 
         /**

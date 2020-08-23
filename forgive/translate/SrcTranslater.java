@@ -41,6 +41,24 @@ public class SrcTranslater extends OpecodeWriter {
                 case "forgive":
                     forgive(words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
+                case "live":
+                    live(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "add":
+                    add(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "subtract":
+                    subtract(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "multiply":
+                    multiply(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "divide":
+                    divide(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "mod":
+                    mod(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
                 case "reminder":
                 default:
                     //無視(コメント)
@@ -165,5 +183,177 @@ public class SrcTranslater extends OpecodeWriter {
         } catch(IOException e){
             registerError(e);
         }
+    }
+
+    private void live(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        try {
+            if(data.length < 3){ 
+                System.err.println("live:引数の数が違います。");
+                return;
+            }
+
+            MethodInfo method = getMethodInfo();
+            byte variableIndex = (byte)method.getIntLocalVariableIndex(data[1]);
+            if(variableIndex == -1) {
+                System.err.println("live:「" + data[1] + "」という世界は存在しません。");
+                return;
+            }
+
+            if (data[2].toLowerCase().equals("as")) {
+                if(data.length != 4){ 
+                    System.err.println("live:引数の数が違います。");
+                    return;
+                }
+                byte fromVariableIndex = (byte)method.getIntLocalVariableIndex(data[3]);
+                if(fromVariableIndex == -1) {
+                    System.err.println("live:「" + data[3] + "」という世界は存在しません。");
+                    return;
+                }
+
+                iload_minimum(codeOutputStream, fromVariableIndex);
+            } else {
+                //live [world] [number]
+                if(data.length != 3){ 
+                    System.err.println("live:引数の数が違います。");
+                    return;
+                }
+                int number;
+                try{
+                    number = Integer.parseInt(data[2]);
+                } catch (NumberFormatException e){
+                    System.err.println("live:整数が指定されていません。");
+                    return;
+                }
+                if(isFitTo_iconst_i(number)){
+                    iconst_i(codeOutputStream, (byte)number);
+                } else {
+                    int integerIndex = constantWriter.writeRuntimeInteger(runtimeOutputStream, number);
+                    ldc(codeOutputStream, (byte)integerIndex);
+                }
+            }
+            istore_minimum(codeOutputStream, variableIndex);
+
+            getMethodInfo().setStackSizeIfBigger(1);
+        } catch(IOException e){
+            registerError(e);
+        }
+    }
+
+    private void calcOperation(CalcOperation ope, String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        String name = ope.getName();
+        try {
+            if(data.length < 3){ 
+                System.err.println(name + ":引数の数が違います。");
+                return;
+            }
+
+            MethodInfo method = getMethodInfo();
+            byte variableIndex = (byte)method.getIntLocalVariableIndex(data[1]);
+            if(variableIndex == -1) {
+                System.err.println(name + ":「" + data[1] + "」という世界は存在しません。");
+                return;
+            }
+
+            if (data[2].toLowerCase().equals("as")) {
+                if(data.length != 4){ 
+                    System.err.println(name + ":引数の数が違います。");
+                    return;
+                }
+                byte fromVariableIndex = (byte)method.getIntLocalVariableIndex(data[3]);
+                if(fromVariableIndex == -1) {
+                    System.err.println(name + ":「" + data[3] + "」という世界は存在しません。");
+                    return;
+                }
+
+                iload_minimum(codeOutputStream, variableIndex);
+                iload_minimum(codeOutputStream, fromVariableIndex);
+            } else {
+                //[world] [number]
+                if(data.length != 3){ 
+                    System.err.println(name + ":引数の数が違います。");
+                    return;
+                }
+                int number;
+                try{
+                    number = Integer.parseInt(data[2]);
+                } catch (NumberFormatException e){
+                    System.err.println(name + ":整数が指定されていません。");
+                    return;
+                }
+                iload_minimum(codeOutputStream, variableIndex);
+                if(isFitTo_iconst_i(number)){
+                    iconst_i(codeOutputStream, (byte)number);
+                } else {
+                    int integerIndex = constantWriter.writeRuntimeInteger(runtimeOutputStream, number);
+                    ldc(codeOutputStream, (byte)integerIndex);
+                }
+            }
+            ope.writeOpecode(this, codeOutputStream);
+            istore_minimum(codeOutputStream, variableIndex);
+
+            getMethodInfo().setStackSizeIfBigger(2);
+        } catch(IOException e){
+            registerError(e);
+        }
+    }
+
+    private void add(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        this.calcOperation(CalcOperation.ADD, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+    private void subtract(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        this.calcOperation(CalcOperation.SUBTRACT, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+    private void multiply(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        this.calcOperation(CalcOperation.MULTIPLY, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+    private void divide(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        this.calcOperation(CalcOperation.DIVIDE, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+    private void mod(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        this.calcOperation(CalcOperation.MOD, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+
+    enum CalcOperation {
+        ADD("add"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.iadd(outputStream);
+            }
+        }, 
+        SUBTRACT("subtract"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.isub(outputStream);
+            }
+        }, 
+        MULTIPLY("multiply"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.imul(outputStream);
+            }
+        }, 
+        DIVIDE("divide"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.idiv(outputStream);
+            }
+        }, 
+        MOD("mod"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.irem(outputStream);
+            }
+        };
+
+        CalcOperation(String name){
+            this.name = name;
+        }
+
+        private final String name;
+        public String getName(){
+            return name;
+        }
+
+        public abstract void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException;
     }
 }
