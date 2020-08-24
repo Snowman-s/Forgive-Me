@@ -49,6 +49,7 @@
 
 - Open [bookmark name] - [bookmark name]の栞が挟まれた位置に移動してまた読み始める。
 - Open-Positive [bookmark name] [number] - [number]が1以上の場合、[bookmark name]の栞が挟まれた位置に移動してまた読み始める。
+- Open-Empty [bookmark name] [number] - [number]が0の場合、[bookmark name]の栞が挟まれた位置に移動してまた読み始める。
 
 ### コメント
 - Reminder [comments...] - コメントを書くために特別に予約された識別子。この文は無視される。前述のとおり定義されない識別子は無視されるのでそれをコメントとして用いることもできる。

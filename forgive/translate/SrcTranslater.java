@@ -86,6 +86,9 @@ public class SrcTranslater extends OpecodeWriter {
                 case "open-positive":
                     openPositive(words, constantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
                     break;
+                case "open-empty":
+                    openEmpty(words, constantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
+                    break;
                 case "reminder":
                 default:
                     //無視(コメント)
@@ -452,6 +455,63 @@ public class SrcTranslater extends OpecodeWriter {
                 MethodInfo method = getMethodInfo();
                 if(!method.existBookMark(data[1])){
                     System.err.println("open-positive:その栞は存在しません。");
+                    return;
+                }
+                innerCodeByteChannel.position(assessmentByte + 1);
+                int gotoByte = getMethodInfo().getBookMarkByteAsRelative(data[1], assessmentByte);
+                innerCodeByteChannel.write(ByteBuffer.wrap(Integers.asByteArray(gotoByte, 2)));
+            });
+        }catch(IOException e){
+            registerError(e);
+            return;
+        }
+    }
+    
+    private void openEmpty(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream, StackMapTableWriter stackMapWriter){
+        if(data.length <= 2){ 
+            System.err.println("open-empty:引数の数が違います。");
+            return;
+        }
+        try{
+            if (data[2].toLowerCase().equals("as")) {
+                if(data.length != 4){ 
+                    System.err.println("open-empty:引数の数が違います。");
+                    return;
+                }
+                byte fromVariableIndex = (byte)getMethodInfo().getIntLocalVariableIndex(data[3]);
+                if(fromVariableIndex == -1) {
+                    System.err.println("open-empty:「" + data[3] + "」という世界は存在しません。");
+                    return;
+                }
+
+                iload_minimum(codeOutputStream, fromVariableIndex);
+            } else {
+                //[bookmark] [number]
+                if(data.length != 3){ 
+                    System.err.println("open-empty:引数の数が違います。");
+                    return;
+                }
+                int number;
+                try{
+                    number = Integer.parseInt(data[2]);
+                } catch (NumberFormatException e){
+                    System.err.println("open-empty:整数が指定されていません。");
+                    return;
+                }
+                if(isFitTo_iconst_i(number)){
+                    iconst_i(codeOutputStream, (byte)number);
+                } else {
+                    int integerIndex = constantWriter.writeRuntimeInteger(runtimeOutputStream, number);
+                    ldc(codeOutputStream, (byte)integerIndex);
+                }
+            }
+            int assessmentByte = getMethodInfo().getOpecodeBytes();
+            ifeq(codeOutputStream, (byte)0);
+            stackMapWriter.writeStackMapTable(getMethodInfo().getOpecodeBytes());
+            delayedAssessments.add((innerConstantWriter, innerRuntimeOutputStream, innerCodeByteChannel, innerStackMapWriter)->{
+                MethodInfo method = getMethodInfo();
+                if(!method.existBookMark(data[1])){
+                    System.err.println("open-empty:その栞は存在しません。");
                     return;
                 }
                 innerCodeByteChannel.position(assessmentByte + 1);
