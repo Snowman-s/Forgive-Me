@@ -59,6 +59,9 @@ public class SrcTranslater extends OpecodeWriter {
                 case "mod":
                     mod(words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
+                case "reverse":
+                    reverse(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
                 case "reminder":
                 default:
                     //無視(コメント)
@@ -311,6 +314,29 @@ public class SrcTranslater extends OpecodeWriter {
     }
     private void mod(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
         this.calcOperation(CalcOperation.MOD, data, constantWriter, runtimeOutputStream, codeOutputStream);
+    }
+
+    private void reverse(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
+        try {
+            if(data.length != 2){ 
+                System.err.println("reverse:引数の数が違います。");
+                return;
+            }
+
+            MethodInfo method = getMethodInfo();
+            byte variableIndex = (byte)method.getIntLocalVariableIndex(data[1]);
+            if(variableIndex == -1) {
+                System.err.println("reverse:「" + data[1] + "」という世界は存在しません。");
+                return;
+            }
+            iload_minimum(codeOutputStream, variableIndex);
+            ineg(codeOutputStream);
+            istore_minimum(codeOutputStream, variableIndex);
+
+            getMethodInfo().setStackSizeIfBigger(1);
+        } catch(IOException e){
+            registerError(e);
+        }
     }
 
     enum CalcOperation {
