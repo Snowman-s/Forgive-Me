@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -81,10 +82,21 @@ public class TempFileLapper {
         }
     }
 
+    public SeekableByteChannel getSeekableByteChannel(TempFileKey file){
+        try{
+            return Files.newByteChannel(
+                files.get(file),
+                StandardOpenOption.CREATE, 
+                StandardOpenOption.WRITE);
+        } catch(Exception e) {
+            throw new RuntimeException("一時ファイル読み込みに失敗しました。");
+        }
+    }
+
     public enum TempFiles{
         SRC_FILE_SEPARATE("src_s"), OUTPUT_CLASSFILE("out"),
         RUNTIME_CONSTANT_MEMO("run"),
-        OPECODE_MEMO("ope"), METHOD_MEMO("met")
+        OPECODE_MEMO("ope"), METHOD_MEMO("met"), STACKMAP_TABLE_MEMO("sta")
         ;
         private final String fileName;
         TempFiles(String fileName){

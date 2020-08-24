@@ -3,6 +3,7 @@ package forgive;
 import forgive.arguments.ArgumentReader;
 import forgive.arguments.ArgumentReader.ArgumentType;
 import forgive.classfile.RuntimeConstantWriter;
+import forgive.classfile.StackMapTableWriter;
 import forgive.classfile.MethodInfo.LocalVariableInfo;
 import forgive.classfile.ClassFileInfo;
 import forgive.classfile.MethodInfo;
@@ -22,6 +23,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -42,6 +44,7 @@ public class Forgive {
     private static int runtimeMethodObjetInitIndex;
     private static int runtimeClassIndex;
     private static int runtimeUtf8CodeIndex;
+    private static int runtimeUtf8StackMapTableIndex;
 
     private static final String SRC_FILE_EXT = ".forgive";
 
@@ -145,6 +148,8 @@ public class Forgive {
             runtimeClassIndex = runtimeConstantWriter.writeRuntimeClass(outputStream, absFileName);
             //utf8 "Code"
             runtimeUtf8CodeIndex = runtimeConstantWriter.writeRuntimeUTF8(outputStream, "Code");
+            //utf8 "StackMapTable"
+            runtimeUtf8StackMapTableIndex = runtimeConstantWriter.writeRuntimeUTF8(outputStream, "StackMapTable");
        }
     }
 
@@ -169,7 +174,7 @@ public class Forgive {
         try(OutputStream methodOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()));
             InputStream codeInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
                 
-            methodWriter.writeMethod(runtimeUtf8CodeIndex, codeInputStream, methodOutputStream);
+            methodWriter.writeMethod(runtimeUtf8CodeIndex, runtimeUtf8StackMapTableIndex, codeInputStream, methodOutputStream, InputStream.nullInputStream());
         }
 
         classFileInfo.addMethods(methodInfo);
@@ -187,19 +192,32 @@ public class Forgive {
             methodInfo.addLocals(LocalVariableInfo.objectVariableOf("", (short)stringArrayIndex));
         }
 
-        tempFileLapper.createTempFiles(Set.of(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()), TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity())));
+        tempFileLapper.createTempFiles(Set.of(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()), 
+                                                TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()), 
+                                                TempFileKey.of(TempFiles.STACKMAP_TABLE_MEMO, methodInfo.getIdentity())));
         try (OutputStream codeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()));
                 BufferedReader srcReader = tempFileLapper.getReader(TempFileKey.of(TempFiles.SRC_FILE_SEPARATE));
-                OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO))){
-            srcTranslater.translateAndWrite(srcReader.lines(), runtimeConstantWriter, runtimeOutputStream, codeOutputStream);
+                OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO));
+                OutputStream stackMapOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.STACKMAP_TABLE_MEMO, methodInfo.getIdentity()))){
+            StackMapTableWriter stackMapWriter = new StackMapTableWriter(methodInfo, stackMapOutputStream);
+            srcTranslater.translateAndWrite(srcReader.lines(), runtimeConstantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
             //opecodes...
             srcTranslater.return_(codeOutputStream);
         }
 
+        try (SeekableByteChannel codeByteChannel = tempFileLapper.getSeekableByteChannel(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()));
+                BufferedReader srcReader = tempFileLapper.getReader(TempFileKey.of(TempFiles.SRC_FILE_SEPARATE));
+                OutputStream runtimeOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.RUNTIME_CONSTANT_MEMO));OutputStream stackMapOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.STACKMAP_TABLE_MEMO, methodInfo.getIdentity()))){
+            StackMapTableWriter stackMapWriter = new StackMapTableWriter(methodInfo, stackMapOutputStream);
+                    
+            srcTranslater.executeDelayedAssessments(runtimeConstantWriter, runtimeOutputStream, codeByteChannel, stackMapWriter);
+        }
+
         try(OutputStream methodOutputStream = tempFileLapper.getOutputStream(TempFileKey.of(TempFiles.METHOD_MEMO, methodInfo.getIdentity()));
-            InputStream codeInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()))){
-            
-            methodWriter.writeMethod(runtimeUtf8CodeIndex, codeInputStream, methodOutputStream);
+            InputStream codeInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.OPECODE_MEMO, methodInfo.getIdentity()));
+            InputStream stackMapInputStream = tempFileLapper.getInputStream(TempFileKey.of(TempFiles.STACKMAP_TABLE_MEMO, methodInfo.getIdentity()))){
+
+            methodWriter.writeMethod(runtimeUtf8CodeIndex, runtimeUtf8StackMapTableIndex, codeInputStream, methodOutputStream, stackMapInputStream);
         }
 
         classFileInfo.addMethods(methodInfo);

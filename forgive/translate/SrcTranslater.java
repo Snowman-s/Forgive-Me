@@ -2,12 +2,18 @@ package forgive.translate;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 
+import forgive.Integers;
 import forgive.classfile.MethodInfo;
 import forgive.classfile.OpecodeWriter;
 import forgive.classfile.RuntimeConstantWriter;
+import forgive.classfile.StackMapTableWriter;
 import forgive.classfile.MethodInfo.LocalVariableInfo;
 
 public class SrcTranslater extends OpecodeWriter {
@@ -17,11 +23,20 @@ public class SrcTranslater extends OpecodeWriter {
         this.error = error;
     }
 
+    private Set<DelayedAssessment> delayedAssessments = new HashSet<>();
+
+    public void executeDelayedAssessments(RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, SeekableByteChannel codeByteChannel, StackMapTableWriter stackMapWriter)throws IOException{
+        for (DelayedAssessment assessment : delayedAssessments) {
+            assessment.assess(constantWriter, runtimeOutputStream, codeByteChannel, stackMapWriter);
+        }
+        delayedAssessments.clear();
+    }
+
     public SrcTranslater(MethodInfo methodInfo) {
         super(methodInfo);
     }
 
-    public void translateAndWrite(Stream<String> srcStream, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream) throws IOException{
+    public void translateAndWrite(Stream<String> srcStream, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream, StackMapTableWriter stackMapWriter) throws IOException{
         error = null;
         srcStream.forEach(string -> {
             if (error != null) return;
@@ -61,6 +76,15 @@ public class SrcTranslater extends OpecodeWriter {
                     break;
                 case "reverse":
                     reverse(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "bookmark":
+                    bookmark(words, constantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
+                    break;
+                case "open":
+                    open(words, constantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
+                    break;
+                case "open-positive":
+                    openPositive(words, constantWriter, runtimeOutputStream, codeOutputStream, stackMapWriter);
                     break;
                 case "reminder":
                 default:
@@ -339,6 +363,107 @@ public class SrcTranslater extends OpecodeWriter {
         }
     }
 
+    private void bookmark(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream, StackMapTableWriter stackMapWriter){
+        if(data.length != 2){ 
+            System.err.println("bookmark:引数の数が違います。");
+            return;
+        }
+
+        MethodInfo method = getMethodInfo();
+        if(method.existBookMark(data[1])){
+            System.err.println("bookmark:その栞は既に存在していました。");
+            return;
+        }
+        method.addBookMarks(data[1]);
+        try{
+            stackMapWriter.writeStackMapTable(getMethodInfo().getOpecodeBytes());
+        }catch(IOException e){
+            registerError(e);
+        }
+    }
+    
+    private void open(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream, StackMapTableWriter stackMapWriter){
+        if(data.length != 2){ 
+            System.err.println("open:引数の数が違います。");
+            return;
+        }
+        int assessmentByte = getMethodInfo().getOpecodeBytes();
+        try{
+            goto_(codeOutputStream, (byte)0);
+            stackMapWriter.writeStackMapTable(getMethodInfo().getOpecodeBytes());
+        }catch(IOException e){
+            registerError(e);
+            return;
+        }
+        delayedAssessments.add((innerConstantWriter, innerRuntimeOutputStream, innerCodeByteChannel, innerStackMapWriter)->{
+            MethodInfo method = getMethodInfo();
+            if(!method.existBookMark(data[1])){
+                System.err.println("open:その栞は存在しません。");
+                return;
+            }
+            innerCodeByteChannel.position(assessmentByte + 1);
+            int gotoByte = getMethodInfo().getBookMarkByteAsRelative(data[1], assessmentByte);
+            innerCodeByteChannel.write(ByteBuffer.wrap(Integers.asByteArray(gotoByte, 2)));
+        });
+    }
+
+    private void openPositive(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream, StackMapTableWriter stackMapWriter){
+        if(data.length <= 2){ 
+            System.err.println("open-positive:引数の数が違います。");
+            return;
+        }
+        try{
+            if (data[2].toLowerCase().equals("as")) {
+                if(data.length != 4){ 
+                    System.err.println("open-positive:引数の数が違います。");
+                    return;
+                }
+                byte fromVariableIndex = (byte)getMethodInfo().getIntLocalVariableIndex(data[3]);
+                if(fromVariableIndex == -1) {
+                    System.err.println("open-positive:「" + data[3] + "」という世界は存在しません。");
+                    return;
+                }
+
+                iload_minimum(codeOutputStream, fromVariableIndex);
+            } else {
+                //[bookmark] [number]
+                if(data.length != 3){ 
+                    System.err.println("open-positive:引数の数が違います。");
+                    return;
+                }
+                int number;
+                try{
+                    number = Integer.parseInt(data[2]);
+                } catch (NumberFormatException e){
+                    System.err.println("open-positive:整数が指定されていません。");
+                    return;
+                }
+                if(isFitTo_iconst_i(number)){
+                    iconst_i(codeOutputStream, (byte)number);
+                } else {
+                    int integerIndex = constantWriter.writeRuntimeInteger(runtimeOutputStream, number);
+                    ldc(codeOutputStream, (byte)integerIndex);
+                }
+            }
+            int assessmentByte = getMethodInfo().getOpecodeBytes();
+            ifgt(codeOutputStream, (byte)0);
+            stackMapWriter.writeStackMapTable(getMethodInfo().getOpecodeBytes());
+            delayedAssessments.add((innerConstantWriter, innerRuntimeOutputStream, innerCodeByteChannel, innerStackMapWriter)->{
+                MethodInfo method = getMethodInfo();
+                if(!method.existBookMark(data[1])){
+                    System.err.println("open-positive:その栞は存在しません。");
+                    return;
+                }
+                innerCodeByteChannel.position(assessmentByte + 1);
+                int gotoByte = getMethodInfo().getBookMarkByteAsRelative(data[1], assessmentByte);
+                innerCodeByteChannel.write(ByteBuffer.wrap(Integers.asByteArray(gotoByte, 2)));
+            });
+        }catch(IOException e){
+            registerError(e);
+            return;
+        }
+    }
+
     enum CalcOperation {
         ADD("add"){
             @Override
@@ -381,5 +506,10 @@ public class SrcTranslater extends OpecodeWriter {
         }
 
         public abstract void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException;
+    }
+
+    @FunctionalInterface
+    public static interface DelayedAssessment{
+        void assess(RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, SeekableByteChannel codeByteChannel, StackMapTableWriter stackMapWriter)throws IOException;
     }
 }

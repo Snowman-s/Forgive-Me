@@ -3,7 +3,9 @@ package forgive.classfile;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import forgive.constants.AccessFlags;
 
@@ -16,6 +18,10 @@ public class MethodInfo {
     private int opecodeBytes = 0;
     private int stackSize = 1;
     private List<LocalVariableInfo> locals = new ArrayList<>();
+    private Map<String, Integer> bookMarks = new HashMap<>();
+    private int stackMapTableOffsetByte = -1;
+    private int stackMapTableBytes = 0;
+    private int stackMapTableCounts = 0;
 
     public MethodInfo(Set<AccessFlags> accessFlagSet, String methodName, String methodDescriptor){
         this.methodName = methodName;
@@ -96,12 +102,63 @@ public class MethodInfo {
         return -1;
     }
 
+    public Map<String, Integer> bookMarks() {
+        return Map.copyOf(bookMarks);
+    }
+
+    /**
+     * @return nameの登録に完了したならtrue, nameが既に存在するならfalse
+     */
+    public boolean addBookMarks(String name){
+        if(bookMarks.containsKey(name)){
+            return false;
+        }
+        bookMarks.put(name, opecodeBytes);
+        return true;
+    }
+
+    public boolean existBookMark(String name){
+        return bookMarks.containsKey(name);
+    }
+
+    public int getBookMarkByte(String name) {
+        return bookMarks.get(name);
+    }
+    
+    public int getBookMarkByteAsRelative(String name, int origin) {
+        return bookMarks.get(name) - origin;
+    }
+
+    public int getStackMapTableOffset(int target) {
+        return target - stackMapTableOffsetByte - 1;
+    }
+
+    public void addStackMapTable(int bytes, int target){
+        stackMapTableBytes += bytes;
+        stackMapTableOffsetByte = target;
+        stackMapTableCounts++;
+    }
+
+    public int getStackMapTableBytes() {
+        return stackMapTableBytes;
+    }
+
+    public int getStackMapTableCounts() {
+        return stackMapTableCounts;
+    }
+
     public static class LocalVariableInfo {
         private String name;
         private byte[] verificationType;
 
         public String name() {
             return name;
+        }
+
+        public byte[] verificationType() {
+            byte[] copy = new byte[verificationType.length];
+            System.arraycopy(verificationType, 0, copy, 0, verificationType.length);
+            return verificationType;
         }
 
         private boolean isIntVariable(){
