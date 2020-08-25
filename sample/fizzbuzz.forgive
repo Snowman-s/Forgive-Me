@@ -1,0 +1,22 @@
+Declare Max. Declare Count.
+
+Migrate Max.Live Count 1.
+
+BookMark For.
+Declare Mod3. Declare Mod5. Declare Mod15.
+Live Mod3 as Count. Live Mod5 as Count. Live Mod15 as Count.
+Mod Mod3 3. Mod Mod5 5. Mod Mod15 15.
+
+Open-Empty Jump15 as Mod15.
+Open-Empty Jump3 as Mod3.
+Open-Empty Jump5 as Mod5.
+
+Forgive Count. Open ForEnd.
+BookMark Jump3. Say Fizz. Open ForEnd.
+BookMark Jump5. Say Buzz. Open ForEnd.
+BookMark Jump15. Say FizzBuzz. Open ForEnd.
+
+BookMark ForEnd.
+Add Count 1.
+Declare Rest. Live Rest as Max. Subtract Rest as Count. Add Rest 1.
+Open-Positive For as Rest.
