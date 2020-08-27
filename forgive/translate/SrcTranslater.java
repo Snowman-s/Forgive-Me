@@ -60,19 +60,28 @@ public class SrcTranslater extends OpecodeWriter {
                     live(words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "add":
-                    add(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    calcOperation(CalcOperation.ADD, words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "subtract":
-                    subtract(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    calcOperation(CalcOperation.SUBTRACT, words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "multiply":
-                    multiply(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    calcOperation(CalcOperation.MULTIPLY, words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "divide":
-                    divide(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    calcOperation(CalcOperation.DIVIDE, words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "mod":
-                    mod(words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    calcOperation(CalcOperation.MOD, words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "andcalc":
+                    calcOperation(CalcOperation.ANDCALC, words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "orcalc":
+                    calcOperation(CalcOperation.ORCALC, words, constantWriter, runtimeOutputStream, codeOutputStream);
+                    break;
+                case "xorcalc":
+                    calcOperation(CalcOperation.XORCALC, words, constantWriter, runtimeOutputStream, codeOutputStream);
                     break;
                 case "reverse":
                     reverse(words, constantWriter, runtimeOutputStream, codeOutputStream);
@@ -327,22 +336,6 @@ public class SrcTranslater extends OpecodeWriter {
         }
     }
 
-    private void add(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
-        this.calcOperation(CalcOperation.ADD, data, constantWriter, runtimeOutputStream, codeOutputStream);
-    }
-    private void subtract(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
-        this.calcOperation(CalcOperation.SUBTRACT, data, constantWriter, runtimeOutputStream, codeOutputStream);
-    }
-    private void multiply(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
-        this.calcOperation(CalcOperation.MULTIPLY, data, constantWriter, runtimeOutputStream, codeOutputStream);
-    }
-    private void divide(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
-        this.calcOperation(CalcOperation.DIVIDE, data, constantWriter, runtimeOutputStream, codeOutputStream);
-    }
-    private void mod(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
-        this.calcOperation(CalcOperation.MOD, data, constantWriter, runtimeOutputStream, codeOutputStream);
-    }
-
     private void reverse(String[] data, RuntimeConstantWriter constantWriter, OutputStream runtimeOutputStream, OutputStream codeOutputStream){
         try {
             if(data.length != 2){ 
@@ -506,6 +499,24 @@ public class SrcTranslater extends OpecodeWriter {
             @Override
             public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
                 opecodeWriter.irem(outputStream);
+            }
+        },
+        ANDCALC("andcalc"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.iand(outputStream);
+            }
+        },
+        ORCALC("orcalc"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.ior(outputStream);
+            }
+        },
+        XORCALC("xorcalc"){
+            @Override
+            public void writeOpecode(OpecodeWriter opecodeWriter, OutputStream outputStream) throws IOException {
+                opecodeWriter.ixor(outputStream);
             }
         };
 

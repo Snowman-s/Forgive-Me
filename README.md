@@ -41,6 +41,9 @@
 - Multiply [world name] [number]. - [world name]の人数を[number(数値)]だけ乗ずる。
 - Divide [world name] [number]. - [world name]の人数を[number(数値)]で除する。
 - Mod [world name] [number]. - [world name]の人数を[number(数値)]で除した余りにする。
+- Andcalc [world name] [number]. - [world name]の人数を[number(数値)]とのAND演算の結果にする。
+- Orcalc [world name] [number]. - [world name]の人数を[number(数値)]とのOR演算の結果にする。
+- Xorcalc [world name] [number]. - [world name]の人数を[number(数値)]とのXOR演算の結果にする。
 
 - Reverse [world name]. - [world name]の裏をとり、逆符号かつ同じ絶対値の人数にする。つまり-1を掛け合わせる。
 
