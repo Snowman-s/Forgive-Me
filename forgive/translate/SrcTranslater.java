@@ -395,6 +395,8 @@ public class SrcTranslater extends OpecodeWriter {
             MethodInfo method = getMethodInfo();
             if(!method.existBookMark(data[1])){
                 System.err.println("open:その栞は存在しません。");
+                innerCodeByteChannel.position(assessmentByte);
+                innerCodeByteChannel.write(ByteBuffer.wrap(new byte[]{0, 0, 0}));
                 return;
             }
             innerCodeByteChannel.position(assessmentByte + 1);
